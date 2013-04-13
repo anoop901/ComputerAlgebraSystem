@@ -24,6 +24,7 @@ public class ComputerAlgebraSystem {
 		System.out.println(sum1.simplify());
 		System.out.println(sum1.representation());
 		System.out.println(sum1.simplify().representation());
+		System.out.println("YASH IS GREAT");
 		
     }
 
