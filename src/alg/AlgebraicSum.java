@@ -77,12 +77,17 @@ public class AlgebraicSum extends AlgebraicExpression {
 	@Override
 	public AlgebraicExpression simplify() {
 
+		// for now, an AlgebraicSum is "simplified" iff
+		//  -- if it has many terms, it has only one RealConstant term, at the end
+		//  -- if it has one term, its sign is negative and its expression is a Variable
+		//  -- it has at least one term
+
 		if (terms.isEmpty()) {
 
 			// the sum is zero
 			return new IntegerConstant(0);
 
-		} else if (terms.size() == 1) { // there is one term
+		} else if (terms.size() == 1) {
 
 			// return an AlgebraicExpression that represents the only term's 
 			//		sign and expression
@@ -98,86 +103,66 @@ public class AlgebraicSum extends AlgebraicExpression {
 			// TODO: update as functionality is added
 			// so far, supports Variables, RealConstants, AlgebraicSums
 			// does not support combining like terms
-
-
+			
+			// represents an AlgebraicSum which is a copy of this, except that the
+			//		expression of each term is simplified and any AlgebraicSums
+			//		within this AlgebraicSum have been simplified and expanded
 			AlgebraicSum innerTermsSimplified = new AlgebraicSum();
+			
 			for (AlgebraicTerm termInOuterSum : terms) {
 				AlgebraicExpression simplified = termInOuterSum.expr.simplify();
-				if (simplified instanceof AlgebraicSum) {
+				if (simplified instanceof AlgebraicSum) { // sum within a sum
+					// distribute the sign of this term to each term in the sum
 					for (AlgebraicTerm termInInnerSum : ((AlgebraicSum) simplified).terms) {
-						Sign combined = Sign.multiply(termInOuterSum.sign, termInInnerSum.sign);
-						innerTermsSimplified.appendTerm(combined, termInInnerSum.expr);
+						Sign combined = Sign.multiply(termInOuterSum.sign,
+								termInInnerSum.sign);
+						innerTermsSimplified.appendTerm(combined,
+								termInInnerSum.expr);
 					}
 				} else {
 					innerTermsSimplified.appendTerm(termInOuterSum.sign,
 							simplified);
 				}
 			}
-			System.out.println("InnerTermsSimplified:" + innerTermsSimplified);
 
 			int intConstSum = 0;		// accumulates the sum of all IntegerConstants
 			double realConstSum = 0.0;	// accumulates the sum of all other RealConstants
 
 			AlgebraicSum expr2 = new AlgebraicSum();
-			for (AlgebraicTerm t : innerTermsSimplified.terms) {
+			for (AlgebraicTerm term : innerTermsSimplified.terms) {
 				// iterate through each of the terms, and process them depending
 				//		on what type they are
 
 
-				if (t.expr instanceof RealConstant) {
+				if (term.expr instanceof RealConstant) {
 
 					// if this term contains a RealConstant, do not add it yet
 					//		because it will be combined with other RealConstants
 					//		and added at the end of the sum. For now, just
 					//		update the appropriate info about what to add at the
 					//		end
-					if (t.expr instanceof IntegerConstant) {
-						if (t.sign == Sign.POSITIVE)
-							intConstSum += ((IntegerConstant) t.expr)
+					if (term.expr instanceof IntegerConstant) {
+						if (term.sign == Sign.POSITIVE)
+							intConstSum += ((IntegerConstant) term.expr)
 									.getIntValue();
 						else
-							intConstSum -= ((IntegerConstant) t.expr)
+							intConstSum -= ((IntegerConstant) term.expr)
 									.getIntValue();
 					} else {
-						if (t.sign == Sign.POSITIVE)
-							realConstSum += ((RealConstant) t.expr).getValue();
+						if (term.sign == Sign.POSITIVE)
+							realConstSum += ((RealConstant) term.expr).getValue();
 						else
-							realConstSum -= ((RealConstant) t.expr).getValue();
+							realConstSum -= ((RealConstant) term.expr).getValue();
 					}
-				} else if (t.expr instanceof Variable) {
+				} else if (term.expr instanceof Variable) {
 
 					// add the variable to the result immediately
-					expr2.appendTerm(t.sign, t.expr);
+					expr2.appendTerm(term.sign, term.expr);
 
 					// TODO: add support for combining like terms and cancelling
 
-				} else if (t.expr instanceof AlgebraicSum) {
-					// TODO: this code only works if t.expr simplifies to an
-					//		instance of AlgebraicSum. fix it.
-					/*ArrayList<AlgebraicTerm> newTerms;
-					 if (t.sign == Sign.POSITIVE) {
-					 newTerms = ((AlgebraicSum) t.expr.simplify()).terms;
-					 } else {
-					 newTerms = ((AlgebraicSum) t.expr.simplify()).negate().terms;
-					 }
-
-					 for (AlgebraicTerm t2 : newTerms) {
-					 // TODO: fix repeated code (maybe)
-					 if (t2.expr instanceof RealConstant) {
-					 if (t2.expr instanceof IntegerConstant) {
-					 if (t2.sign == Sign.POSITIVE)
-					 intConstSum += ((IntegerConstant) t2.expr).getIntValue();
-					 else
-					 intConstSum -= ((IntegerConstant) t2.expr).getIntValue();
-					 } else {
-					 if (t2.sign == Sign.POSITIVE)
-					 realConstSum += ((RealConstant) t2.expr).getValue();
-					 else
-					 realConstSum -= ((RealConstant) t2.expr).getValue();
-					 }
-					 } else
-					 expr2.appendTerm(t2.sign, t2.expr);
-					 }*/
+				} else if (term.expr instanceof AlgebraicSum) {
+					throw new IllegalStateException("There was some kind of logic error in the code.");
 				} else {
 					throw new UnsupportedOperationException("A sum containing "
 							+ "this type of expression cannot be simplified.");
@@ -209,15 +194,18 @@ public class AlgebraicSum extends AlgebraicExpression {
 	}
 
 	@Override
-	public AlgebraicSum negate() {
+	public AlgebraicExpression negate() {
 
 		AlgebraicSum res = new AlgebraicSum();
 
 		for (AlgebraicTerm t : terms) {
 			res.appendTerm(t.sign.negate(), t.expr);
 		}
-
-		return res;
+		
+		if (res.terms.size() == 1)
+			return res.simplify();
+		else 
+			return res;
 	}
 
 	private static class AlgebraicTerm {
@@ -229,7 +217,7 @@ public class AlgebraicSum extends AlgebraicExpression {
 			sign = s;
 			expr = e;
 		}
-
+/*
 		@Override
 		public String toString() {
 			if (sign == Sign.POSITIVE) {
@@ -238,7 +226,7 @@ public class AlgebraicSum extends AlgebraicExpression {
 				return expr.negate().toString();
 			}
 		}
-
+*/
 		public String representation() {
 			return "[" + sign.toString() + ", " + expr.representation() + "]";
 		}
