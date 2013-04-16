@@ -11,24 +11,22 @@ public class ComputerAlgebraSystem {
 		Variable varY = new Variable("y");
         
 		AlgebraicSum sum1 = new AlgebraicSum();
-		AlgebraicSum sum2 = new AlgebraicSum();
-		AlgebraicSum sum3 = new AlgebraicSum();
+		AlgebraicProduct prod = new AlgebraicProduct();
 		
-		sum3.appendTerm(Sign.POSITIVE, new IntegerConstant(849));
-		sum3.appendTerm(Sign.NEGATIVE, varY);
-		sum3.appendTerm(Sign.NEGATIVE, new IntegerConstant(258));
+		sum1.appendTerm(Sign.POSITIVE, new IntegerConstant(3));
+		sum1.appendTerm(Sign.NEGATIVE, varY);
+		sum1.appendTerm(Sign.NEGATIVE, new IntegerConstant(1));
+		sum1.appendTerm(Sign.POSITIVE, new IntegerConstant(7));
 		
-		sum2.appendTerm(Sign.NEGATIVE, varX);
-		sum2.appendTerm(Sign.POSITIVE, new IntegerConstant(189));
-		sum2.appendTerm(Sign.POSITIVE, sum3);
+		prod.appendFactor(varX);
+		prod.appendFactor(new IntegerConstant(3));
+		prod.appendFactor(sum1);
 		
-		sum1.appendTerm(Sign.POSITIVE, new IntegerConstant(570));
-		sum1.appendTerm(Sign.NEGATIVE, sum2);
+		//AlgebraicExpression simplified = prod.simplify();
 		
-		AlgebraicExpression simplified = sum1.simplify();
-		
-		System.out.println(sum1);
-		System.out.println(simplified);
+		System.out.println(prod);
+		System.out.println(prod.representation());
+		//System.out.println(simplified);
     }
 
 }
